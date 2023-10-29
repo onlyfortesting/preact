@@ -205,4 +205,49 @@ declare namespace React {
 		callback: () => void
 	): void;
 	export const unstable_now: () => number;
+
+	// From @types/react
+	export type ElementType<P = any> =
+		| {
+				[K in keyof JSX.IntrinsicElements]: P extends JSX.IntrinsicElements[K]
+					? K
+					: never;
+		  }[keyof JSX.IntrinsicElements]
+		| preact.ComponentType<P>;
+
+	export type PropsWithoutRef<P> = P extends any
+		? 'ref' extends keyof P
+			? Omit<P, 'ref'>
+			: P
+		: P;
+	export type PropsWithRef<P> = 'ref' extends keyof P
+		? P extends { ref?: infer R | undefined }
+			? string extends R
+				? PropsWithoutRef<P> & { ref?: Exclude<R, string> | undefined }
+				: P
+			: P
+		: P;
+
+	export type ComponentPropsWithoutRef<T extends ElementType> = PropsWithoutRef<
+		ComponentProps<T>
+	>;
+	export type ComponentPropsWithRef<T extends ElementType> = T extends new (
+		props: infer P
+	) => Component<any, any>
+		? PropsWithoutRef<P> & RefAttributes<InstanceType<T>>
+		: PropsWithRef<ComponentProps<T>>;
+	export type ElementRef<
+		C extends
+			| ForwardRefExoticComponent<any>
+			| { new (props: any): Component<any> }
+			| ((props: any, context?: any) => ReactNode)
+			| keyof JSX.IntrinsicElements
+	> =
+		// need to check first if `ref` is a valid prop for ts@3.0
+		// otherwise it will infer `{}` instead of `never`
+		'ref' extends keyof ComponentPropsWithRef<C>
+			? NonNullable<ComponentPropsWithRef<C>['ref']> extends Ref<infer Instance>
+				? Instance
+				: never
+			: never;
 }
